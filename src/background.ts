@@ -38,14 +38,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, _sendResponse) => {
     console.log('[MailPilot bg] got OPEN_SIDE_PANEL', message.payload);
 
     chrome.storage.local.set(
-      { mailpilotEmailData: message.payload },
-      () => console.log('[MailPilot bg] stored mailpilotEmailData'),
+      { 
+        mailpilotEmailData: message.payload,
+        mailpilotActiveTabId: sender.tab?.id,   // <‑‑ store the tab id here
+      },
+      () => console.log('[MailPilot bg] stored mailpilotEmailData + tabId'),
     );
 
     if (sender.tab?.id !== undefined) {
-      // remember which tab this panel belongs to
-      chrome.storage.local.set({ mailpilotActiveTabId: sender.tab.id });
-
       chrome.sidePanel.open({ tabId: sender.tab.id });
     } else if (sender.tab?.windowId !== undefined) {
       chrome.sidePanel.open({ windowId: sender.tab.windowId });
@@ -122,25 +122,19 @@ chrome.runtime.onMessage.addListener(async (message, sender, _sendResponse) => {
     }
   }
 
-  // Handle apply email request from side panel
   if (message?.type === 'APPLY_EMAIL') {
     const { subject, body } = message;
-    
-    console.log('[MailPilot bg] Got APPLY_EMAIL request', { subject, body });
-    
-    // Find the Gmail tab and forward the message to its content script
-    chrome.tabs.query({ url: 'https://mail.google.com/*' }, (tabs) => {
-      if (tabs.length === 0) {
-        console.error('[MailPilot bg] No Gmail tab found');
+
+    chrome.storage.local.get('mailpilotActiveTabId', (res) => {
+      const tabId = res.mailpilotActiveTabId as number | undefined;
+      if (!tabId) {
+        console.error('[MailPilot bg] No active tab stored');
         return;
       }
-      
-      // Use the first Gmail tab (or you could use the active one)
-      const gmailTab = tabs[0];
-      
-      console.log('[MailPilot bg] Sending APPLY_EMAIL to tab:', gmailTab.id);
-      
-      chrome.tabs.sendMessage(gmailTab.id!, {
+
+      console.log('[MailPilot bg] Sending APPLY_EMAIL to tab:', tabId);
+
+      chrome.tabs.sendMessage(tabId, {
         type: 'APPLY_EMAIL',
         subject,
         body,
@@ -148,7 +142,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, _sendResponse) => {
         console.error('[MailPilot bg] Error sending message to content script:', error);
       });
     });
-    
+
     return true;
   }
   
