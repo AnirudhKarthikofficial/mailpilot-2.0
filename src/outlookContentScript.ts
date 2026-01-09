@@ -165,9 +165,52 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       );
 
     if (bodyDiv) {
-      bodyDiv.innerText = body;
-      bodyDiv.dispatchEvent(new Event('input', { bubbles: true }));
-      bodyDiv.dispatchEvent(new Event('change', { bubbles: true }));
+        bodyDiv.focus();
+
+        bodyDiv.style.fontFamily = 'Aptos, "Segoe UI", sans-serif';
+        bodyDiv.style.margin = '0';
+        bodyDiv.style.padding = '0';
+        bodyDiv.style.lineHeight = 'normal';
+
+        bodyDiv.innerHTML = '';
+
+        const trimmedBody = body.trim();
+
+        let formattedBody = trimmedBody
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
+
+        formattedBody = formattedBody.replace(/^(<br\s*\/?>)+/i, '');
+
+        bodyDiv.textContent = '';
+        bodyDiv.innerHTML = formattedBody;
+        
+        const firstChild = bodyDiv.firstChild;
+        if (firstChild && firstChild.nodeType === Node.TEXT_NODE && firstChild.textContent?.trim() === '') {
+            firstChild.remove();
+        }
+
+        bodyDiv.dispatchEvent(new Event('input', { bubbles: true }));
+        bodyDiv.dispatchEvent(new Event('change', { bubbles: true }));
+        bodyDiv.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+        bodyDiv.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter' }));
+
+        // setTimeout(() => {
+        //     try {
+        //         const selection = window.getSelection();
+        //         if (selection && bodyDiv.contains(selection.anchorNode)) {
+        //             const range = document.createRange();
+        //             range.selectNodeContents(bodyDiv);
+        //             selection.removeAllRanges();
+        //             selection.addRange(range);
+        //             document.execCommand('fontName', false, 'Aptos');
+        //     }
+        //     } catch (e) {
+        //     console.log('[MailPilot Outlook] execCommand not available');
+        //     }
+        // }, 100);
     }
   }
 
